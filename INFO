@@ -1,10 +1,10 @@
 {
     "name": "artemediathek",
-    "hostprefix": "arte.tv",
-    "displayname": "ARTE+7",
+    "hostprefix": "arte.tv,theoperaplatform.eu",
+    "displayname": "ARTE TV + The Opera Platform",
     "version": "0.3a",
     "authentication": "no",
     "module": "artemediathek.php",
     "class": "SynoFileHostingARTEMediathek",
-    "description": "Download Videos from ARTE+7"
+    "description": "Download Videos from various ARTE websites and The Opera Platform"
 }
