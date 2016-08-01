@@ -59,6 +59,7 @@ class SynoFileHostingARTEMediathek extends TheiNaDProvider {
 			switch($match[1])
 			{
 				case 'future.':
+				case 'tracks.':
 					$type = "dataFuture";
 					$this->DebugLog("Found a Future site !");
 					if(preg_match('#src=["|\']http.*?json_url=(.*?)%3F.*["|\']#si', $rawXML, $match) === 1)
