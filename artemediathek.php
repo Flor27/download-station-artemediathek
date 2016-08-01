@@ -6,60 +6,66 @@
  * @copyright 2015 Daniel Gehn
  * @license http://opensource.org/licenses/MIT Licensed under MIT License
  */
-
-require_once 'provider.php';
-
-class SynoFileHostingARTEMediathek extends TheiNaDProvider {
-
-    protected $LogPath = '/tmp/arte-mediathek.log';
-
-    protected $language = "de";
-    protected $languageShortLibelle = "de";
-    protected $altLanguageShortLibelle = "de";
-
-    protected static $languageMap = array(
-        'de'    => 'de',
-        'fr'    => 'fr',
-    );
-
-    protected static $languageMapShortLibelle = array(
-        'de'    => 'de',
-        'fr'    => 'vf',
-    );
-
-	protected static $alternativeLangages = array(
-		'de'	=> array('va','vo','vosta'),
-		'fr'	=> array('vf','vof','vostfr','vostf','vo')
-	);
+	require_once 'provider.php';
 	
-    public function GetDownloadInfo() {
-        $this->DebugLog("Determining language by url $this->Url");
-
-		preg_match('#http:\/\/(\w+\.)?arte.tv\/(?:guide\/)?([a-zA-Z]+)#si', $this->Url, $match);
-
-        if(isset($match[2]) && isset(self::$languageMap[$match[2]]))
-        {
-            $this->language = self::$languageMap[$match[2]];
-            $this->languageShortLibelle = self::$languageMapShortLibelle[$match[2]];
-        }
-
-        $rawXML = $this->curlRequest($this->Url);
-        $this->DebugLog("Getting download url");
-
-        if($rawXML === null)
-        {
-			$this->DebugLog("not retrieved !?!");
-            return false;
-        }
-
-		$notFound = true;
+	class SynoFileHostingARTEMediathek extends TheiNaDProvider {
 		
-		if(isset($match[1]))
-		{	
-			switch($match[1])
+		protected $LogPath = '/tmp/arte-mediathek.log';
+		
+		protected $language = "de";
+		protected $languageShortLibelle = "de";
+		protected $altLanguageShortLibelle = "de";
+		
+		protected static $languageMap = array(
+			'de'    => 'de',
+			'fr'    => 'fr'
+		);
+		
+		protected static $languageMapShortLibelle = array(
+			'de'    => 'de',
+			'fr'    => 'vf'
+		);
+		
+		protected static $alternativeLangages = array(
+			'de'	=> array('va','vo','vosta','ov'),
+			'fr'	=> array('vf','vof','vostfr','vostf','vo','ov')
+		);
+		
+		public function GetDownloadInfo() {
+			$theOperaPlatform = false;
+			$this->DebugLog("Determining language by url $this->Url");
+			
+			if(!preg_match('#http:\/\/(\w+\.)?arte.tv\/(?:guide\/)?([a-zA-Z]+)#si', $this->Url, $match)) {
+				if(preg_match('#http:\/\/(\w+\.)?theoperaplatform.eu\/([a-zA-Z]+)\/#si', $this->Url, $match)) {
+					$theOperaPlatform = true;
+					// Quick'n'dirty...
+					$match[1] = 'theOperaPlatform';
+				}
+			}
+			
+			if(isset($match[2]) && isset(self::$languageMap[$match[2]]))
 			{
-				case 'future.':
-				case 'tracks.':
+				$this->language = self::$languageMap[$match[2]];
+				$this->languageShortLibelle = self::$languageMapShortLibelle[$match[2]];
+			}
+			
+			$rawXML = $this->curlRequest($this->Url);
+			$this->DebugLog("Getting download url");
+			
+			if($rawXML === null)
+			{
+				$this->DebugLog("not retrieved !?!");
+				return false;
+			}
+			
+			$notFound = true;
+			
+			if(isset($match[1]))
+			{	
+				switch($match[1])
+				{
+					case 'future.':
+					case 'tracks.':
 					$type = "dataFuture";
 					$this->DebugLog("Found a Future site !");
 					if(preg_match('#src=["|\']http.*?json_url=(.*?)%3F.*["|\']#si', $rawXML, $match) === 1)
@@ -80,10 +86,11 @@ class SynoFileHostingARTEMediathek extends TheiNaDProvider {
 						$this->DebugLog($match[1]." site : wtf is this HTML ?");
 						return false;
 					}
-				break;
-				
-				case 'concert.':
-				case 'creative.':
+					break;
+					
+					case 'theOperaPlatform' :
+					case 'concert.':
+					case 'creative.':
 					$type = "dataConcert";
 					//$notFound
 					$this->DebugLog("Found a Concert site !");
@@ -97,23 +104,23 @@ class SynoFileHostingARTEMediathek extends TheiNaDProvider {
 							return false;
 						}
 						$data = json_decode($RawJSON);
-
+						
 						$notFound = false;
 					}
 					else {
 						$this->DebugLog($match[1]." site : wtf is this HTML !?");
 						
-							$fp = fopen("/tmp/$type.txt",'w+');
-							fwrite($fp,print_r($rawXML,1));
-							fclose($fp);
+						$fp = fopen("/tmp/$type.txt",'w+');
+						fwrite($fp,print_r($rawXML,1));
+						fclose($fp);
 						
 						return false;
 					}
-				break;
-				
-				case 'www.':
-				default:
-				$type = "dataClassic";
+					break;
+					
+					case 'www.':
+					default:
+					$type = "dataClassic";
 					$this->DebugLog("Default Arte TV site !");
 					if(preg_match('#data-embed-base-url=["|\'](.*?)["|\']#si', $rawXML, $match) === 1)
 					{
@@ -158,74 +165,75 @@ class SynoFileHostingARTEMediathek extends TheiNaDProvider {
 					{
 						$notFound = true;
 					}
-				break;
+					break;
+				}
 			}
-		}
-
-		$this->DebugLog('Using language ' . $this->language .' and languageShortLibelle '.$this->languageShortLibelle);
-		
-		if($notFound === true || $data === null)
-		{
-			$this->DebugLog("not found or data is null !");
-			return false;
-		}
-
-		$bestSource = array(
-			'bitrate' => -1,
-			'url' => '',
-		);
-
-		foreach ($data->videoJsonPlayer->VSR as $source) {
-			if ($source->mediaType == "mp4" && 
+			
+			$this->DebugLog('Using language ' . $this->language .' and languageShortLibelle '.$this->languageShortLibelle);
+			
+			if($notFound === true || $data === null)
+			{
+				$this->DebugLog("not found or data is null !");
+				return false;
+			}
+			
+			$bestSource = array(
+				'bitrate' => -1,
+				'url' => '',
+			);
+			
+			foreach ($data->videoJsonPlayer->VSR as $source) {
+				$this->DebugLog("Found mediaType ".$source->mediaType ." and bitrate " . $source->bitrate);
+				if ($source->mediaType == "mp4" && 
 				((mb_strtolower($source->versionShortLibelle) == $this->languageShortLibelle)
 				|| 
 				in_array(mb_strtolower($source->versionShortLibelle), self::$alternativeLangages[$this->language]))
 				&& $source->bitrate > $bestSource['bitrate'])
+				{
+					$bestSource['bitrate'] = $source->bitrate;
+					$bestSource['url'] = $source->url;
+				}
+			}
+			
+			if ($bestSource['url'] !== '') {
+				$filename = '';
+				$url = trim($bestSource['url']);
+				$pathinfo = pathinfo($url);
+				
+				$this->DebugLog("Title: " . $data->videoJsonPlayer->VTI . (isset($data->videoJsonPlayer->VSU) ? ' Subtitle: ' . $data->videoJsonPlayer->VSU : ''));
+				$this->DebugLog("With bitrate " . $bestSource['bitrate']);
+				if (!empty($data->videoJsonPlayer->VTI)) {
+					$filename .= $data->videoJsonPlayer->VTI;
+				}
+				
+				if (isset($data->videoJsonPlayer->VSU) && !empty($data->videoJsonPlayer->VSU)) {
+					$filename .= ' - ' . $data->videoJsonPlayer->VSU;
+				}
+				
+				
+				if (empty($filename)) {
+					$filename = $pathinfo['basename'];
+				} else {
+					$filename .= '.' . $pathinfo['extension'];
+				}
+				
+				$this->DebugLog("Naming file: " . $filename);
+				
+				$DownloadInfo = array();
+				$DownloadInfo[DOWNLOAD_URL] = $url;
+				$DownloadInfo[DOWNLOAD_FILENAME] = $this->safeFilename($filename);
+				
+				return $DownloadInfo;
+			}
+			else
 			{
-				$bestSource['bitrate'] = $source->bitrate;
-				$bestSource['url'] = $source->url;
+				$this->DebugLog("Empty BestSource URL !!");
 			}
+			
+			$this->DebugLog("Failed to determine best quality: " . print_r($data->videoJsonPlayer->VSR,1));
+			
+			return FALSE;
 		}
+	}
 
-		if ($bestSource['url'] !== '') {
-			$filename = '';
-			$url = trim($bestSource['url']);
-			$pathinfo = pathinfo($url);
-
-			$this->DebugLog("Title: " . $data->videoJsonPlayer->VTI . (isset($data->videoJsonPlayer->VSU) ? ' Subtitle: ' . $data->videoJsonPlayer->VSU : ''));
-
-			if (!empty($data->videoJsonPlayer->VTI)) {
-				$filename .= $data->videoJsonPlayer->VTI;
-			}
-
-			if (isset($data->videoJsonPlayer->VSU) && !empty($data->videoJsonPlayer->VSU)) {
-				$filename .= ' - ' . $data->videoJsonPlayer->VSU;
-			}
-
-
-			if (empty($filename)) {
-				$filename = $pathinfo['basename'];
-			} else {
-				$filename .= '.' . $pathinfo['extension'];
-			}
-
-			$this->DebugLog("Naming file: " . $filename);
-
-			$DownloadInfo = array();
-			$DownloadInfo[DOWNLOAD_URL] = $url;
-			$DownloadInfo[DOWNLOAD_FILENAME] = $this->safeFilename($filename);
-
-			return $DownloadInfo;
-		}
-		else
-		{
-			$this->DebugLog("Empty BestSource URL !!");
-		}
-
-		$this->DebugLog("Failed to determine best quality: " . print_r($data->videoJsonPlayer->VSR,1));
-
-        return FALSE;
-    }
-
-}
 ?>
