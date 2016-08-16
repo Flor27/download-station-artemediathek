@@ -32,7 +32,8 @@ class SynoFileHostingARTEMediathek extends TheiNaDProvider {
 
     protected static $ovShortLibelle = array(
         'og',
-        'ov'
+        'ov',
+        'vo'
     );
 
     public function GetDownloadInfo() {
