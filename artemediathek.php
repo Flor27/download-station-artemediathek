@@ -34,6 +34,11 @@ class SynoFileHostingARTEMediathek extends TheiNaDProvider {
         'og',
         'ov'
     );
+    
+    protected static $alternativeLangages = array(
+			'de'	=> array('va','og','vo','vosta','ov'),
+			'fr'	=> array('vf','vof','vostfr','vostf','vo','ov','og')
+	);
 
     public function GetDownloadInfo() {
     	$this->DebugLog("Determining website and language by url $this->Url.");
@@ -105,7 +110,7 @@ class SynoFileHostingARTEMediathek extends TheiNaDProvider {
                 $source->mediaType == "mp4" &&
                 (
                     $shortLibelleLowercase == $this->languageShortLibelle ||
-                    in_array($shortLibelleLowercase, self::$ovShortLibelle)
+                    in_array($shortLibelleLowercase, self::$alternativeLangages[$this->language])
                 ) &&
                 $source->bitrate > $bestSource['bitrate']
             ) {
