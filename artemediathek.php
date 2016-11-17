@@ -216,7 +216,6 @@ class SynoFileHostingARTEMediathek extends TheiNaDProvider {
             if(preg_match('#json_url=(.*)$#si', $iframeUrl, $match) === 1) {
 
                 $jsonUrl = urldecode($match[1]);
-                $this->DebugLog("Url = $jsonUrl");
                 $RawJSON = $this->curlRequest($jsonUrl);
 
                 if ($RawJSON === null) {
