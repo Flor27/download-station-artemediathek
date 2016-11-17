@@ -208,7 +208,24 @@ class SynoFileHostingARTEMediathek extends TheiNaDProvider {
                     return json_decode($RawJSON);
                 }
             }
+	}
+        else if(preg_match('#<div class="video-player".[^>]*arte_vp_iframized.[^>]*>.[^<]*<iframe .[^>]*src="(.[^"]*)"#si', $rawXML, $match) === 1) {
+
+            $iframeUrl = $match[1];
+
+            if(preg_match('#json_url=(.*)$#si', $iframeUrl, $match) === 1) {
+
+                $jsonUrl = urldecode($match[1]);
+                $RawJSON = $this->curlRequest($jsonUrl);
+
+                if ($RawJSON === null) {
+                    return null;
+                }
+
+                return json_decode($RawJSON);
+            }
         }
+
 
         $this->DebugLog("Couldn't identify player meta.");
 
